@@ -1,0 +1,17 @@
+application.yml 配置
+
+logging:
+    config: classpath:log4j2.xml
+    level:
+         cn.jay.repository: INFO
+		 
+		 
+调用
+    private static Logger log= LoggerFactory.getLogger(UserController.class);
+    @RequestMapping(value="/login")
+    public String login( ) {
+      	log.debug("可以直接调用log打印日志了");
+    	return "zhosd";
+    	}
+    }
+		 
