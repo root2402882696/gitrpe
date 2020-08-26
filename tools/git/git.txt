@@ -1,0 +1,19 @@
+  
+  -------------git 添加----------------
+  
+  git add 文件名.文件类型
+  ----------------git 状态-------------
+  
+  git status
+
+  -----------git 提交-----------
+   
+  git commit -m "first commit"
+
+
+ ----------git 推送-------------
+ git push -u origin master#首次提交
+ 
+ ---------git reset-------------
+ git reset --soft head  保存修改
+ git reset --hard head  不保存修改
