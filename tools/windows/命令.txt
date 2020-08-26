@@ -1,0 +1,3 @@
+netstat -aon|findstr ¡°¶Ë¿ÚºÅ¡±
+
+taskkill -f -pid ¡°½ø³ÌºÅ¡±
