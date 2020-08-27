@@ -1,0 +1,15 @@
+
+日志 
+docker logs -f 容器ID
+状态
+docker status 容器ID
+IP
+docker inspect -f='{{.NetworkSettings.IPAddress}}' $(sudo docker ps -a -q)
+
+不用做端口映射
+docker run --net=host -e TZ="Asia/Shanghai"  -e JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=7903 -Xmx128m -Xms128m -Xmn64m -Xss256k" --name sss -d ssss
+
+查看网桥
+docker network ls
+
+
