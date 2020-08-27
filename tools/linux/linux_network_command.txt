@@ -1,0 +1,195 @@
+------------------------------------------------------------------------------------------------------
+linux中网路相关的主要的几个配置文件为:
+
+   /etc/hosts 配置主机名(域名)和IP地址的对应
+   /etc/sysconfig/network 配置主机名和网关
+   /etc/sysconfig/network-scripts/ifcfg-eth0 eth0配置文件,eth1则文件名为ifcfg-eth1,以此类推
+    /etc/resolv.conf 配置DNS客户端(关于使用哪个DNS配置)
+	
+	
+---------------------------------------------------------------------------------------------------------
+/etc/sysconfig/network-scripts/ifcfg-<interface-name>文件
+在redHat中,系统网络设备的配置文件保存在/etc/sysconfig/network-scripts目录下, ifcfg-eth0包含第一块网卡的配置信心,ifcfg-eth1包含第二块网卡的配置信息.在启动时,系统通过读取这个配置文件决定某个网卡是否启动和如何配置.
+
+/etc/sysconfig/network-scripts/ifcfg-eth0文件示例:
+DEVICE=eth0
+IPADDR=192.168.0.2
+NETMASK=255.255.255.0
+BROADCAST=192.168.0.255
+NBOOT=yes
+BOOTPROTO=none
+GATEWAY=192.168.0.1
+手工修改网络地址或增加新的网络链接,可以通过修改对应的文件ifcfg-<interface-name>或创建新的文件来实现
+DEVICE=<name>  # <name>表示物理设备的名字
+IPADDR=<address> # <address>表示赋给该网卡的IP地址
+NETMASK=<mask> # 表示子网掩码
+BROADCAST=<address> # <address>表示广播地址
+NBOOT=yes/no # 启动时网卡是否激活
+BOOTPROTO=none # none:无须启动协议;bootp:使用bootp协议;dhcp:使用dhcp协议
+GATEWAY=<address> # <address> 表示默认网关
+MACADDR=<MAC-address> # <MAC-address>表示指定一个mac地址
+USERCTL=yes/no # 是否允许非root用户控制设备
+
+-------------------------------------------------------------------------------------------
+/etc/resolv.conf
+文件/etc/resolv.conf配置DNS客户端,它包含了DNS服务器地址和域名搜索配置,每一行应包含一个关键字和一个或多个的由空格隔开的参数.下面是一个例子的文件:
+
+search wuxp.com
+namesever 192.168.0.1
+namesever 192.168.0.2
+search wuxp.com:表示当提供一个不包含完全域名的主机名时,在该主机名后添加wuxp.com的后缀;
+namesever:表示解析域名时使用该地址指定的主机为域名服务器.其中域名服务器按照文件中出现的顺序来查询的.
+因此,应该首先给出最可靠的服务器.目前,至多支持三个名字的服务器.
+
+
+--------------------------------------------------------------------------------------------
+/etc/sysconfig/network
+该文件用来指定服务器上的网络配置信息,下面是一个示例:
+
+NETWORK=yes
+RORWARD_IPV4=yes
+HOSTNAME=server.wuxp.com
+GAREWAY=192.168.0.1
+GATEWAYDEV=eth0
+
+NETWORK=yes/no          # 网络是否被配置
+FORWARD_IPV4=yes/no     # 是否开启IP转发功能
+HOSTNAME=<hostname>     # <hostname>表示服务器的主机名
+GAREWAY=<address>       # <address>表示网络网关的IP地址
+GAREWAYDEV=<device>     # <device>表示网关的设备名，如：eth0
+
+------------------------------------------------------------------------------------------------
+
+
+
+/etc/hosts
+当机器启动时,在可以查询DNS以前,机器需要查询一些主机名到IP地址的匹配.这些匹配信息存放在/etc/hosts文件中.在没有域名服务器情况下.系统上的所有网络程序都通过查询该文件来解析对应于某个主机名的IP地址:
+
+示例:
+127.0.0.1   Localhost   server.wuxp.com
+192.168.0.3 stationl.wuxp.com
+最左边一列是主机IP信息,中间一列是主机名.任何后面的列都是该主机的别名.
+修改后需要重启网路才能生效,重新启动网络设置:
+/sbin/service network restart
+service network start # 启动网络服务
+service network stop # 停止网络服务
+service network status # 查看网络服务状态
+单个网卡绑定多个IP和多个网卡绑定为一块虚拟网卡的配置
+
+单网卡绑定多个IP
+有时,我们需要在一块配置多个IP,例如:
+eth0配置IP: 192.168.168.2和192.168.168.3
+那么需要再/etc/sysconfig/network-scripts下新建两个配置文件:
+ifcfg-eth0:0
+DEVICE=eth0:0
+BOOTPROTO=static
+IPADDR=192.168.168.2
+NETMASK=255.255.255.0
+NBOOT=yes
+ifcfg-eth1
+DEVICE=eth0:1
+BOOTPROTO=static
+IPADDR=192.168.168.3
+NETMASK=255.255.255.0
+NBOOT=yes
+多个网卡绑定成一块虚拟网卡
+为了提供网络的高可用性,我们可能需要将多块网卡绑定成一块虚拟网卡对外提供服务,这样即使其中的一块物理网卡出现故障,也不会导致链接中断.比如我们可以将eth0和eth1绑定成虚拟网卡bond0
+首先在/etc/sysconfig/network-scripts/下创建虚拟网卡bond0的配置文件ifcfg-bond0，内容如下
+DEVICE=bond0
+BOOTPROTO=none
+BROADCAST=192.168.168.255
+IPADDR=192.168.168.1
+NETMASK=255.255.255.0
+NETWORK=192.168.168.0
+NBOOT=yes
+TYPE=Ethernet
+GATEWAY=192.168.168.250
+USERCTL=no
+然后分别修改eth0和eth1的配置文件
+DEVICE=eth0
+BOOTPROTO=none
+NBOOT=yes
+USERCTL=no
+MASTER=bond0
+SLAVE=yes
+ifcfg-eth1内容
+DEVICE=eth1
+BOOTPROTO=none
+NBOOT=yes
+USERCTL=no
+MASTER=bond0
+SLAVE=yes
+因为linux的虚拟网卡是在内核模块中实现的,所以需要安装的时候已经装好该module.在/etc/modprobe.conf文件中添加如下内容(如果没有该文件,则新建一个):
+alias bond0 bonding
+options bond0 miimon=100 mode=1 primary=eth0
+其中miimon=100表示每100ms检查一次链路链接状态,如果不通则会切换物理网卡
+mode=1表示主备模式，也就是只有一块网卡是active的，只提供失效保护。如果mode=0则是负载均衡模式的，所有的网卡都是active，还有其他一些模式很少用到primary=eth0表示主备模式下eth0为默认的active网卡.
+最后，在/etc/rc.local中加入
+modprobe bonding miimon=100 mode=1
+重启机器后可以看到虚拟网卡已经生效，可以通过插拔两个物理网卡的网线来进行测试，不过linux中网卡接管的时间好象比较长。
+示例
+
+查看当前网络信息
+用命令: ifconfig这个命令会显示当前系统中起来的所有网卡设备信息,虚拟网卡或者二层网桥都会显示出来.在windows中查看网卡设备的命令是: ipconfig, 结果如下代码:
+    em1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500                   
+        inet 58.221.61.137  netmask 255.255.255.0  broadcast 58.221.61.255  
+        ether 08:00:27:a7:04:4c  txqueuelen 1000  (Ethernet)                
+        RX packets 897976926  bytes 460354493652 (428.7 GiB)                
+        RX errors 0  dropped 0  overruns 0  frame 0                         
+        TX packets 732008453  bytes 77462607445 (72.1 GiB)                  
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0          
+
+    lo: flags=73<UP,LOOPBACK,RUNNING>  mtu 65536                                
+        inet 127.0.0.1  netmask 255.0.0.0                                   
+        loop  txqueuelen 1  (Local Loopback)                                
+        RX packets 2795715777  bytes 1058364974383 (985.6 GiB)              
+        RX errors 0  dropped 0  overruns 0  frame 0                         
+        TX packets 2795715777  bytes 1058364974383 (985.6 GiB)              
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0    
+如果你开机后用ifconfig命令查到的结果和上面的一样，那么你的网络很可能就是正常的。
+简单介绍下上面的结果的内容，首先有两块网卡：
+- eth0是我设置的，一般来说每个Linux系统都会有块eth0（有的是eth1或者eth2等等）；
+- lo网卡是块回环网卡，就是内部回环查询的，可以用来查看下是不是自己网卡硬件有问题（自己ping自己），这块设备每个操作系统都是有的。但有些可能是没有起来。
+
+如果在第一步中没有查看到结果那么别伤心，可以用命令：ifconfig -a 来查看所有存在的网卡设备，当然包括没有起来的。
+因为有些设置有问题或者在开机时无法读取你的网络设置脚步，所以无法帮你的网卡自动起来。这时候就得靠自己手动起来了。
+如果ifconfig -a发现有些没起来的设备，那么可以手动起来，网络应该就没问题了。现假设查看到eth0没有自动起来，那么用命令：
+ifconfig eth0 up（相对命令关闭网卡命令：ifconfig eth0 down） 执行命令后如果没有打印出什么来就表示执行命令成功
+（这是Linux的低调：命令执行成功什么都没有显示，如果没有成功那么错误信息恐怕有可能会刷屏）；然后执行下第一个命令：ifconfig 如果结果显示出eth0的信息了，
+那么表示网卡已经开始工作了，网络没问题了。当然这只是暂时的，至于为什么没有自动起来，有两个原因：
+
+系统启动时读取网络配置脚本出问题，这个可以查看下启动日志；
+是网络配置脚步本身的问题，这个可以看后面几步的网络配置；
+当然如果是系统启动读取脚本出问题，那这个就可能比较复杂了。我当时也出现过一次，系统启动时死活都读取不到我配置脚本，
+后来才发现是我自己把物理网卡设备关掉了，这个到后面会分享下。如果查找不出什么原因来，也没关系，用个简单的方法：把ifconfig eth0 up这个命令写到启动脚本中就可以了。执行下命令：echo 'ifconfig eth0 up' >> /etc/rc.local（我记得会读取rc.local，可以查看下应该是rc.local）把这个命令追加到启动脚本中去就可以了。每次开机就会自启动了。
+
+这才是网络配置的关键。进入到网卡所在目录：cd /etc/sysconfig/network-scripts，可以查看到很多和网络有关的设备；
+有ifcfg-eth0和ifcfg-lo这个两个文件，就是对应ifconfig出来的eth0和lo网卡设备的。进入到ifcfg-eth0文件中
+
+ DEVICE=eth0                // 这是网卡的名称  
+ TYPE=Ethernet              // 网卡类型  
+ ONBOOT=yes                 // 是否随着开机自启动  
+ BOOTPROTO=static           // static表示固定ip地址，dhcp表示随机获取ip  
+ IPADDR=192.168.10.150      // 手动设置的固定ip地址  
+ NETMASK=255.255.255.0      // mask地址，就是掩码  
+ GATEWAY=192.168.10.1       // 网关地址  
+大家可以根据自己的需求对网卡进行配置，上面是我基本配置，把一些无关的（如：uuid，mac地址等）删除掉了。设置好重启下网络：
+server network restart 再ping下内网看看通不通（可以用arp -a来查看下当前有哪些主机是开放的）。如果通了，
+那么大概就指定怎么设置网卡信息了。这里提下，如果你需要用eth1的话可以拷贝份eth0修改成eth1，但前提是你要有物理网卡，虚拟机的话也要设置虚拟网卡。到此内部网络已经通了，接下来配置外网了。
+
+如果内网已经没问题了那么来看看外网的配置（一定不能跳过内网配置来直接配置外网）。首先也是检查下外网有没有通，直接ping百度：
+ping www.baidu.com，如果通了，那行，可以到此结束了。如果通不了，出现无法识别主机之类的。那么跟着配置下下面脚本。第一、要配置下DNS，直接进入文件：vim /etc/resolv.conf 添加两行脚本即可。
+nameserver 192.168.10.1  // 用网关做DNS  
+nameserver 8.8.8.8       // 用谷歌免费提供的DNS  
+如果前一步DNS已经配置好了，那么可以先ping下百度，能不能通。如果不能通那么查看下路由设置，路由的概念就啰嗦的讲了，
+简单一句：控制里面数据包到达外面的路线规则。用命令：route -n 查看下路由表
+ [zongzhen@collect ~]$ route -n
+ Kernel IP routing table
+ Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+ 0.0.0.0         58.221.61.1     0.0.0.0         UG    0      0        0 em1
+ 58.221.61.0     0.0.0.0         255.255.255.0   U     0      0        0 em1
+ 169.254.0.0     0.0.0.0         255.255.0.0     U     1003   0        0 em1
+ 172.17.0.0      0.0.0.0         255.255.0.0     U     0      0        0 docker0
+可以看到Gateway一栏中有 58.221.61.1表面这里有个默认网关，当数据包找不到出口时，一律往这个网关丢。路由器另外一端是连接公网的，
+所以如果配置了默认网卡那么就可以和外界通讯了。如果没有默认网关则要自己手动添加一条默认网关：route add default gw 58.221.61.1然后重启网络再试试能不能和外界通信了。
+如果你的Linux不是虚拟机，这几步配置下来网络基本上可以工作的了。但如果你的是虚拟机里面装的Linux系统，那么配置网络还是比较复杂的。
