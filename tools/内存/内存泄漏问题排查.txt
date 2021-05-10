@@ -1,0 +1,23 @@
+内存泄漏问题排查
+
+普法：
+分析堆外内存。通过设置-Xmx参数只能限制java进程中Java Heap的内存大小。而java进程的内存是由Java Heap、Class、Thread、Code、GC、Internal、Symbol、Native Memory Tracking、unknown这几部分组成。
+比如当系统网络请求过大时，Internal部分的内存会显著上升，占用大量内存。
+实际场景中，要结合top，jmap，NMT工具对java进程的内存进行分析
+
+
+1、-Xms8m -Xmx8m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=d:\jvmtest
+	说明：只能排查堆内内存溢出， 堆外内存溢出的时候没办法
+
+	-Xms 为jvm启动时分配的内存，比如-Xms2m，表示分配2M。
+
+	-Xmx 为jvm运行过程中分配的最大内存，比如-Xmx4m，表示jvm进程最多只能够占用4M内存。
+
+	-XX:+HeapDumpOnOutOfMemoryError 表示出现OutOfMemoryError异常时，记录快照。
+
+	-XX:HeapDumpPath 表示快照的存储位置（这里可以设置文件名字，也可以不设置），不设置名字它会自己生成的。
+	
+	
+	
+参考文档：https://www.cnblogs.com/z00377750/p/14470883.html
+          https://laowan.blog.csdn.net/article/details/113340344
